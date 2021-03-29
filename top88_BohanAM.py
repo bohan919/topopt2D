@@ -1,10 +1,8 @@
 import numpy as np
-# import scipy.sparse as sps
 from scipy.sparse import csr_matrix
 from scipy.sparse.linalg import spsolve
 from matplotlib import colors
 import matplotlib.pyplot as plt
-# import sys
 import AMFilter
 
 def main(nelx,nely,volfrac,penal,rmin,ft):
@@ -13,7 +11,7 @@ def main(nelx,nely,volfrac,penal,rmin,ft):
     Emin = 1e-9
     nu = 0.3
 
-    # PRINT DIRECTION
+    # USER DEFINED PRINT DIRECTION
     baseplate = 'S'
 
     # PREPARE FINITE ELEMENT ANALYSIS
@@ -70,12 +68,10 @@ def main(nelx,nely,volfrac,penal,rmin,ft):
     beta = 1
     if ft == 1 or ft == 2:
         xPhys = x
-        baseplate = 'S'  # USER DEFINED PRINT DIRECTION
         xPrint, _ = AMFilter.AMFilter(xPhys, baseplate)
     elif ft == 3:
         xTilde = x
         xPhys = 1 - np.exp(-beta * xTilde) + xTilde * np.exp(-beta)
-        baseplate = 'S'  # USER DEFINED PRINT DIRECTION
         xPrint, _ = AMFilter.AMFilter(xPhys, baseplate)
     ####### AM CALL 1 #####
     # xPrint,_ = AMFilter.AMFilter(xPhys, baseplate)
@@ -84,14 +80,10 @@ def main(nelx,nely,volfrac,penal,rmin,ft):
     loopbeta = 0
     change = 1
 
-    # Plot to screen
-    # Initialize plot and plot the initial design
-    plt.ion()  # Ensure that redrawing is possible
-    fig, ax = plt.subplots()
-
     # START ITERATION
-    while change > 0.01 and loop<=500:
+    while change > 0.01 and loop<=1000:
         loop = loop + 1
+        loopbeta = loopbeta + 1
         # FE ANALYSIS
         sK = np.reshape(KE.ravel(order='F')[np.newaxis].T @ (Emin+xPrint.ravel(order = 'F')[np.newaxis]**penal*(E0-Emin)),(64*nelx*nely,1),order='F')
         # K = sps.csr_matrix((np.squeeze(sK), (np.squeeze(iK.astype(int)) - 1, np.squeeze(jK.astype(int)) - 1)))
@@ -169,14 +161,17 @@ def main(nelx,nely,volfrac,penal,rmin,ft):
             change = 1
             print("Parameter beta increased to {0}. \n".format(beta))
         # Write iteration history to screen (req. Python 2.6 or newer)
-        print("it.: {0} , ch.: {1:.3f}, obj.: {2:.4f}".format(\
-					loop, change, c))
+        print("it.: {0} , obj.: {1:.4f}, vol.: {3:.3f}, ch.: {2:.3f}".format(\
+					loop, c, change, volfrac))
 
     # PLOT THE RESULT
+    # Plot to screen
+    # Initialize plot and plot the initial design
+    plt.ion()  # Ensure that redrawing is possible
+    fig, ax = plt.subplots()
     im = ax.imshow(0 - xPrint, cmap='gray', \
         interpolation='none', norm=colors.Normalize(vmin=-1, vmax=0))       # REPLACE xPhys with xPrint
     im.set_array(0-xPrint)                                                   # REPLACE xPhys with xPrint
-    plt.pause(0.000001)
     plt.draw()
     
 
