@@ -1,8 +1,19 @@
 clear
 tic
 %%% top88(nelx,nely,volfrac,penal,rmin,ft)
+i = 1;
+for nely = 90:5:100
+    fig = figure(i);
+    nelx = 2*nely;
+    top88_AMfilter(nelx,nely,0.4, 5, 2, 2);
+    saveas(fig, nelx+"_"+nely+".png")
+    i = i+1;
+end
 % top88(90,30,0.4, 5, 2, 3);
-top88_AMfilter(200,100,0.4, 5, 2, 3);
+% top88_AMfilter(200,100,0.4, 5, 2, 3);
+% top88(40,20,0.4, 2, 2, 2);
+% top88_AMfilter(40,20,0.4, 2, 2, 2);
+% top3d(30,40,5,0.4,5,2);
 toc
 
 % x = [ 1 0 1 1; 1 1 0 1; 1 1 0 1]

@@ -110,11 +110,11 @@ while change > 0.01 && loop<=1000
       fprintf('Parameter beta increased to %g. \n',beta)
   end
   %% PRINT RESULTS
-  fprintf(' It.:%5i Obj.:%11.4f Vol.:%7.3f ch.:%7.3f\n',loop,c, ...
+    fprintf(' It.:%5i Obj.:%11.4f Vol.:%7.3f ch.:%7.3f\n',loop,c, ...
     mean(xPrint(:)),change); %%%%%%%REPLACE xPhys with xPrint
-  %% PLOT DENSITIES
-  %colormap(gray); imagesc(1-xPrint); caxis([0 1]); axis equal; axis off; drawnow; %%%%%%%REPLACE xPhys with xPrint
 end
+%% PLOT DENSITIES
+colormap(gray); imagesc(1-xPrint); caxis([0 1]); axis equal; axis off; drawnow; %%%%%%%REPLACE xPhys with xPrint
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % This Matlab code was written by E. Andreassen, A. Clausen, M. Schevenels,%

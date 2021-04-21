@@ -1,16 +1,18 @@
-import numpy as np
-import numpy.matlib
-import math
-import AMFilter
-import scipy.sparse as sps
+# import numpy as np
+# import numpy.matlib
+# import math
+# import AMFilter
+# import scipy.sparse as sps
 import top88_BohanAM
-import top88_Bohan
+# import top88_Bohan
+
+# top88_BohanAM.main(60,30,0.4,5, 2, 3)
 
 import cProfile
 import pstats
 from pstats import SortKey
 
-cProfile.run('top88_Bohan.main(200,100,0.4,5, 2, 2)','cprofilestats.txt')
+cProfile.run('top88_BohanAM.main(60,30,0.4,5, 2, 3)','cprofilestats.txt')
 p = pstats.Stats('cprofilestats.txt')
 p.sort_stats('tottime').print_stats(50)
 
