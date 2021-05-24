@@ -1,9 +1,8 @@
-from __future__ import division
+# from __future__ import division
 import numpy as np
-import scipy.sparse as sps
-import math
-from scipy.sparse import coo_matrix
-from scipy.sparse.linalg import spsolve
+from scipy.sparse import csr_matrix
+# from scipy.sparse.linalg import spsolve
+from pypardiso import spsolve
 from matplotlib import colors
 import matplotlib.pyplot as plt
 import sys
@@ -56,10 +55,10 @@ def main(nelx,nely,volfrac,penal,rmin,ft):
                     e2 = (i2-1)*nely + j2
                     iH[k] = e1
                     jH[k] = e2
-                    sH[k] = max(0, rmin-math.sqrt((i1-i2)**2+(j1-j2)**2))
+                    sH[k] = max(0, rmin-np.sqrt((i1-i2)**2+(j1-j2)**2))
                     k = k + 1
     
-    H = sps.csr_matrix( (np.squeeze(sH), (np.squeeze(iH.astype(int))-1,np.squeeze(jH.astype(int))-1)))
+    H = csr_matrix( (np.squeeze(sH), (np.squeeze(iH.astype(int))-1,np.squeeze(jH.astype(int))-1)))
     Hs = np.sum(H, axis = 1)
 
     # INITIATE ITERATION
@@ -74,11 +73,11 @@ def main(nelx,nely,volfrac,penal,rmin,ft):
     fig, ax = plt.subplots()
 
     # START ITERATION
-    while change > 0.01 and loop<=500:
+    while change > 0.01 and loop<=1000:
         loop = loop + 1
         # FE ANALYSIS
         sK = np.reshape(KE.ravel(order='F')[np.newaxis].T @ (Emin+xPhys.ravel(order = 'F')[np.newaxis]**penal*(E0-Emin)),(64*nelx*nely,1),order='F')
-        K = sps.csr_matrix( (np.squeeze(sK), (np.squeeze(iK.astype(int))-1,np.squeeze(jK.astype(int))-1)))
+        K = csr_matrix( (np.squeeze(sK), (np.squeeze(iK.astype(int))-1,np.squeeze(jK.astype(int))-1)))
         K = (K + K.T) / 2
         U[freedofs-1,0]=spsolve(K[freedofs-1,:][:,freedofs-1],F[freedofs-1,0])   
         #U[freedofs-1] = np.linalg.lstsq(K[freedofs-1, :][:, freedofs-1],F[freedofs-1].T)[0]
@@ -127,14 +126,17 @@ def main(nelx,nely,volfrac,penal,rmin,ft):
 		# Write iteration history to screen (req. Python 2.6 or newer)
         print("it.: {0} , ch.: {1:.3f}".format(\
 					loop, change))
-        
-    # PLOT THE RESULT
-    im = ax.imshow(0 - xPhys, cmap='gray', \
-        interpolation='none', norm=colors.Normalize(vmin=-1, vmax=0))
-    im.set_array(0-xPhys)
-    plt.draw()
+    
+     # PLOT THE RESULT
+    # im = ax.imshow(0 - xPhys, cmap='gray', \
+    #     interpolation='none', norm=colors.Normalize(vmin=-1, vmax=0))
+    # im.set_array(0-xPhys)
+    # plt.draw()
 
 
 
     # Make sure the plot stays and that the shell remains	
     # input("Press any key...")
+    
+    return xPhys
+   

@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.sparse import csr_matrix
-from scipy.sparse.linalg import spsolve
+# from scipy.sparse.linalg import spsolve
+from pypardiso import spsolve
 from matplotlib import colors
 import matplotlib.pyplot as plt
 import AMFilter
@@ -167,13 +168,13 @@ def main(nelx,nely,volfrac,penal,rmin,ft):
     # PLOT THE RESULT
     # Plot to screen
     # Initialize plot and plot the initial design
-    plt.ion()  # Ensure that redrawing is possible
-    fig, ax = plt.subplots()
-    im = ax.imshow(0 - xPrint, cmap='gray', \
-        interpolation='none', norm=colors.Normalize(vmin=-1, vmax=0))       # REPLACE xPhys with xPrint
-    im.set_array(0-xPrint)                                                   # REPLACE xPhys with xPrint
-    plt.draw()
-    
+    # plt.ion()  # Ensure that redrawing is possible
+    # fig, ax = plt.subplots()
+    # im = ax.imshow(0 - xPrint, cmap='gray', \
+    #     interpolation='none', norm=colors.Normalize(vmin=-1, vmax=0))       # REPLACE xPhys with xPrint
+    # im.set_array(0-xPrint)                                                   # REPLACE xPhys with xPrint
+    # plt.draw()
 
-    # Make sure the plot stays and that the shell remains	
-    # input("Press any key...")
+    # # Make sure the plot stays and that the shell remains	
+    # # input("Press any key...")
+    return xPrint
