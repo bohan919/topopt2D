@@ -55,7 +55,7 @@ loop = 0;
 loopbeta = 0;
 change = 1;
 %% START ITERATION
-while change > 0.01 && loop<=500
+while change > 0.01 && loop<=1000
   loop = loop + 1;
   loopbeta = loopbeta + 1;
   %% FE-ANALYSIS

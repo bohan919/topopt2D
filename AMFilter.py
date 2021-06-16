@@ -1,7 +1,12 @@
-# TRANSLATED PYTHON FUNCTION FOR AMFilter.m by LANGELAAR
+# TRANSLATED PYTHON FUNCTION of AMFilter.m by LANGELAAR
+# Developed by BOHAN PENG - IMPERIAL COLLEGE LONDON 2021 
+# DISCLAIMER -                                                             #
+# The author reserves all rights but does not guaranty that the code is    #
+# free from errors. Furthermore, he shall not be liable in any event       #
+# caused by the use of the program.                                        #
+
 import numpy as np
 import numpy.matlib
-# import math
 import scipy.sparse as sps
 from copy import deepcopy
 
@@ -17,10 +22,12 @@ def AMFilter(x, baseplate, *args):
     #              default orientation is 'S'
     #              for 'X', the filter is inactive and just returns the input.
     #   df1dx, df1dxi etc.:  design sensitivity (2D arrays)
+
     #INTERNAL SETTINGS
     P = 40
     ep = 1e-4 
     xi_0 = 0.5 # parameters for smooth max/min functions
+
     # INPUT CHECKS
     if baseplate=='X':
     # bypass option: filter does not modify the blueprint design
@@ -46,7 +53,7 @@ def AMFilter(x, baseplate, *args):
 
     #AM Filter
     Ns = 3
-    Q = P + np.log(Ns)/np.log(xi_0)         #CHANGED FROM MATH.LOG() TO NP.LOG()
+    Q = P + np.log(Ns)/np.log(xi_0)         
     SHIFT = 100*np.finfo(float).tiny **(1/P)
     BACKSHIFT = 0.95*Ns**(1/Q)*SHIFT**(P/Q)
     Xi = np.zeros(np.shape(x))
@@ -68,15 +75,13 @@ def AMFilter(x, baseplate, *args):
     if nSens != 0:
         dfxi = ()
         for arg in args:
-            # dfxi = dfxi + (copy.deepcopy(np.reshape(arg, (nely, nelx))),)
             dfxi = dfxi + (deepcopy(np.reshape(arg,(nely, nelx))),)
-        #dfxi = args
-        #dfx = args
+
         dfx = ()
         for arg in args:
-            # dfx = dfx + (copy.deepcopy(np.reshape(arg, (nely, nelx))),)
             dfx = dfx + (deepcopy(np.reshape(arg,(nely, nelx))),)
         varLambda = np.zeros((nSens, nelx))
+
         # from top to base layer:
         for i in range(nely-1):
             # smin sensitivity terms

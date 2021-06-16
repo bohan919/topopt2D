@@ -1,12 +1,15 @@
-# from __future__ import division
+# TOPOLOGY OPTIMISATION BASED ON top88.mat WITH LANGELAAR'S AMFILTER FOR 2D BY BOHAN PENG - IMPERIAL COLLEGE LONDON 2021
+# DISCLAIMER -                                                             #
+# The author reserves all rights but does not guaranty that the code is    #
+# free from errors. Furthermore, he shall not be liable in any event       #
+# caused by the use of the program.                                        #
+
 import numpy as np
 from scipy.sparse import csr_matrix
-# from scipy.sparse.linalg import spsolve
 from pypardiso import spsolve
 from matplotlib import colors
 import matplotlib.pyplot as plt
 import sys
-import AMFilter
 
 def main(nelx,nely,volfrac,penal,rmin,ft):
     # MATERIAL PROPERTIES
@@ -57,7 +60,6 @@ def main(nelx,nely,volfrac,penal,rmin,ft):
                     jH[k] = e2
                     sH[k] = max(0, rmin-np.sqrt((i1-i2)**2+(j1-j2)**2))
                     k = k + 1
-    
     H = csr_matrix( (np.squeeze(sH), (np.squeeze(iH.astype(int))-1,np.squeeze(jH.astype(int))-1)))
     Hs = np.sum(H, axis = 1)
 
@@ -67,11 +69,6 @@ def main(nelx,nely,volfrac,penal,rmin,ft):
     loop = 0
     change = 1
 
-    # Plot to screen
-    # Initialize plot and plot the initial design
-    plt.ion()  # Ensure that redrawing is possible
-    fig, ax = plt.subplots()
-
     # START ITERATION
     while change > 0.01 and loop<=1000:
         loop = loop + 1
@@ -80,7 +77,6 @@ def main(nelx,nely,volfrac,penal,rmin,ft):
         K = csr_matrix( (np.squeeze(sK), (np.squeeze(iK.astype(int))-1,np.squeeze(jK.astype(int))-1)))
         K = (K + K.T) / 2
         U[freedofs-1,0]=spsolve(K[freedofs-1,:][:,freedofs-1],F[freedofs-1,0])   
-        #U[freedofs-1] = np.linalg.lstsq(K[freedofs-1, :][:, freedofs-1],F[freedofs-1].T)[0]
 
         #OBJECTIVE FUNCTION AND SENSITIVITY ANALYSIS
         ce =  np.reshape((np.sum( U[edofMat-1,0]@KE*U[edofMat-1,0] , axis = 1)),(nely, nelx),order='F')
@@ -100,6 +96,7 @@ def main(nelx,nely,volfrac,penal,rmin,ft):
             dv = H @ (dv.ravel(order='F')[np.newaxis].T / Hs)
             dv = np.reshape(dv, (nely, nelx), order='F')
             dv = np.asarray(dv)
+
         # OPTIMALITY CRITERIA UPDATE OF DESIGN VARIABLES AND PHYSICAL DENSITIES
         l1 = 0
         l2 = 1e9
@@ -110,7 +107,6 @@ def main(nelx,nely,volfrac,penal,rmin,ft):
             xnew_step2 = np.minimum(1, xnew_step1)
             xnew_step3 = np.maximum(x - move, xnew_step2)
             xnew = np.maximum(0, xnew_step3)
-#            xnew = np.max(np.zeros((nely,nelx)), np.max(x-move, np.min(np.ones((nely, nelx)),np.min(x+move,x*np.sqrt(-dc/dv/lmid)))))
             if ft == 1:
                 xPhys = xnew
             elif ft == 2:
@@ -123,20 +119,6 @@ def main(nelx,nely,volfrac,penal,rmin,ft):
         change = np.max(np.abs(xnew[:]-x[:]))
         x = xnew
 
-		# Write iteration history to screen (req. Python 2.6 or newer)
-        print("it.: {0} , ch.: {1:.3f}".format(\
-					loop, change))
-    
-     # PLOT THE RESULT
-    # im = ax.imshow(0 - xPhys, cmap='gray', \
-    #     interpolation='none', norm=colors.Normalize(vmin=-1, vmax=0))
-    # im.set_array(0-xPhys)
-    # plt.draw()
-
-
-
-    # Make sure the plot stays and that the shell remains	
-    # input("Press any key...")
-    
+        print("it.: {0} , obj.: {1:.4f}, vol.: {3:.3f}, ch.: {2:.3f}".format(\
+					loop, c, change, volfrac))
     return xPhys
-   

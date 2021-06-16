@@ -1,19 +1,24 @@
 clear
 %%% top88(nelx,nely,volfrac,penal,rmin,ft)
 i = 1;
-for nely = 60:150
-    nelx = 4*nely;
+% for nely = 60:150
+    nelx = 200;
+    nely = 100;
     
-    fig1 = figure(1);
-    top88(nelx,nely,0.4, 5, 2, 2);
-    saveas(fig1, nelx+"_"+nely+"_Raw.png")
-    
+%     fig1 = figure(1);
+%     tic
+%     top88(nelx,nely,0.4, 2, 2, 2);
+%     toc
+%     saveas(fig1, nelx+"_"+nely+"_Raw.png")
+    disp('AM')
     fig2 = figure(2);
-    top88_AMfilter(nelx,nely,0.4, 5, 2, 2);
-    saveas(fig2, nelx+"_"+nely+"_AMFull.png")
+    tic
+    top88_AMfilter(nelx,nely,0.4, 2, 2, 2);
+    toc
+%     saveas(fig2, nelx+"_"+nely+"_AMFull.png")
     
-    close all
-end
+%     close all
+% end
 % top88(90,30,0.4, 5, 2, 3);
 % top88_AMfilter(200,100,0.4, 5, 2, 3);
 % top88(40,20,0.4, 2, 2, 2);
