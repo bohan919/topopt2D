@@ -16,7 +16,7 @@ from matplotlib import colors
 import matplotlib.pyplot as plt
 import AMFilter
 
-def main(nelx,nely,volfrac,penal,rmin,ft):
+def main(nelx,nely,volfrac,penal,rmin,ft,path):
     # MATERIAL PROPERTIES
     E0 = 1
     Emin = 1e-9
@@ -45,13 +45,15 @@ def main(nelx,nely,volfrac,penal,rmin,ft):
     iK = np.reshape(np.kron(edofMat, np.ones((8,1))).T, (64*nelx*nely,1),order='F')
     jK = np.reshape(np.kron(edofMat, np.ones((1,8))).T, (64*nelx*nely,1),order='F')
 
-    # DEFINE LOADS AND SUPPORTS (HALF MBB-BEAM)
+    # DEFINE LOADS AND SUPPORTS (FIXED TO HALF MBB-BEAM)
     F = np.zeros((2*(nely+1)*(nelx+1),1))
     F[1,0] = -1
     U = np.zeros((2*(nely+1)*(nelx+1),1))
     fixeddofs = np.union1d(np.arange(1,2*(nely+1),2),2*(nelx+1)*(nely+1))
     alldofs = np.arange(1,2*(nely+1)*(nelx+1)+1)
     freedofs = np.setdiff1d(alldofs, fixeddofs)
+
+    # DEFINE LOADS AND BC (MULTIPLE CHOICES)
 
     # PREPARE FILTER
     iH = np.ones((nelx*nely*(int(2*(np.ceil(rmin)-1)+1))**2,1))
@@ -132,6 +134,12 @@ def main(nelx,nely,volfrac,penal,rmin,ft):
             dv = np.reshape(dv, (nely, nelx), order='F')
             dv = np.asarray(dv)
 
+        # Save strain energy at the first iteration
+        if loop == 1:  
+                se=(Emin + xPrint* (E0 - Emin))* ce #strain enrgy
+                # np.save(str(path)+'/strain_energy/strain_energy_'+nelx+'_'+nely+'.npy',dc)
+                np.save(str(path)+'/strain_energy/strain_energy'+nelx+'_'+nely+'.npy',se)
+
         # OPTIMALITY CRITERIA UPDATE OF DESIGN VARIABLES AND PHYSICAL DENSITIES
         l1 = 0
         l2 = 1e9
@@ -169,4 +177,6 @@ def main(nelx,nely,volfrac,penal,rmin,ft):
         # Write iteration history to screen (req. Python 2.6 or newer)
         print("it.: {0} , obj.: {1:.4f}, vol.: {3:.3f}, ch.: {2:.3f}".format(\
 					loop, c, change, volfrac))
+    
+    np.save(str(path)+'/supportFreeStruc/xPrintAM_'+nelx+'_'+nely+'.npy', xPrint) # save the support free result
     return xPrint
