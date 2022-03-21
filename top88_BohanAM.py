@@ -16,7 +16,7 @@ from matplotlib import colors
 import matplotlib.pyplot as plt
 import AMFilter
 
-def main(nelx,nely,volfrac,penal,rmin,ft,path):
+def main(nelx,nely,volfrac,penal,rmin,ft):
     # MATERIAL PROPERTIES
     E0 = 1
     Emin = 1e-9
@@ -136,9 +136,9 @@ def main(nelx,nely,volfrac,penal,rmin,ft,path):
 
         # Save strain energy at the first iteration
         if loop == 1:  
-                se=(Emin + xPrint* (E0 - Emin))* ce #strain enrgy
-                # np.save(str(path)+'/strain_energy/strain_energy_'+nelx+'_'+nely+'.npy',dc)
-                np.save(str(path)+'/strain_energy/strain_energy'+nelx+'_'+nely+'.npy',se)
+            se=(Emin + xPrint* (E0 - Emin))* ce # strain enrgy at the first iteration
+            # np.save(str(path)+'/strain_energy/strain_energy_'+nelx+'_'+nely+'.npy',dc)
+            # np.save(str(path)+'\strain_energy\strain_energy'+str(nelx)+'_'+str(nely)+'.npy',se)
 
         # OPTIMALITY CRITERIA UPDATE OF DESIGN VARIABLES AND PHYSICAL DENSITIES
         l1 = 0
@@ -177,6 +177,5 @@ def main(nelx,nely,volfrac,penal,rmin,ft,path):
         # Write iteration history to screen (req. Python 2.6 or newer)
         print("it.: {0} , obj.: {1:.4f}, vol.: {3:.3f}, ch.: {2:.3f}".format(\
 					loop, c, change, volfrac))
-    
-    np.save(str(path)+'/supportFreeStruc/xPrintAM_'+nelx+'_'+nely+'.npy', xPrint) # save the support free result
-    return xPrint
+
+    return xPrint, se
