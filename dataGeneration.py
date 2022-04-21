@@ -12,19 +12,19 @@ import top88_Bohan
 #            2: density filter
 #            3: Heaviside Filter
 
-nelx = 60
-nely = 30
+nelx = 40
+nely = 20
 
 filepathSE = "OUTPUT/STRAIN ENERGY/SE_" + str(nelx) + '_' + str(nely)
 filepathxPrint = "OUTPUT/XPRINT/" + str(nelx) + '_' + str(nely)
-xPrint_AM, se = top88_BohanAM.main(nelx,nely,0.4,2, 2, 2)
+xPrint_AM, se = top88_BohanAM.main(nelx,nely,0.4, 3, 1.5, 2)
 
 np.save(filepathSE,se)
 np.save(filepathxPrint, xPrint_AM)
 
 # PULL and PLOT the OUTPUT for SANITY CHECK
-nelxCheck = 60
-nelyCheck = 30
+nelxCheck = nelx
+nelyCheck = nely
 
 seCheck = np.load("OUTPUT/STRAIN ENERGY/SE_" + str(nelxCheck) + '_' + str(nelyCheck)+'.npy')
 xPrintCheck = np.load("OUTPUT/XPRINT/" + str(nelxCheck) + '_' + str(nelyCheck)+'.npy')
