@@ -16,7 +16,7 @@ from matplotlib import colors
 import matplotlib.pyplot as plt
 import AMFilter
 
-def main(nelx,nely,volfrac,penal,rmin,ft,path):
+def main(nelx,nely,volfrac,penal,rmin,ft,bc):
     # MATERIAL PROPERTIES
     E0 = 1
     Emin = 1e-9
@@ -45,11 +45,20 @@ def main(nelx,nely,volfrac,penal,rmin,ft,path):
     iK = np.reshape(np.kron(edofMat, np.ones((8,1))).T, (64*nelx*nely,1),order='F')
     jK = np.reshape(np.kron(edofMat, np.ones((1,8))).T, (64*nelx*nely,1),order='F')
 
-    # DEFINE LOADS AND SUPPORTS (FIXED TO HALF MBB-BEAM)
+    # DEFINE LOADS AND SUPPORTS
+    # Inititalise the matrices
     F = np.zeros((2*(nely+1)*(nelx+1),1))
-    F[1,0] = -1
     U = np.zeros((2*(nely+1)*(nelx+1),1))
-    fixeddofs = np.union1d(np.arange(1,2*(nely+1),2),2*(nelx+1)*(nely+1))
+    # Define the unit load location and BC
+    if bc == 1:
+        # Half MBB-BEAM Case
+        F[1,0] = -1
+        fixeddofs = np.union1d(np.arange(1,2*(nely+1),2),2*(nelx+1)*(nely+1))
+    elif bc == 2:
+        # cantilever case
+        F[2*(nely+1)*(nelx+1)-1, 0] = -1
+        fixeddofs = np.arange(1,2*(nely+1))
+
     alldofs = np.arange(1,2*(nely+1)*(nelx+1)+1)
     freedofs = np.setdiff1d(alldofs, fixeddofs)
 
@@ -136,9 +145,9 @@ def main(nelx,nely,volfrac,penal,rmin,ft,path):
 
         # Save strain energy at the first iteration
         if loop == 1:  
-                se=(Emin + xPrint* (E0 - Emin))* ce #strain enrgy
-                # np.save(str(path)+'/strain_energy/strain_energy_'+nelx+'_'+nely+'.npy',dc)
-                np.save(str(path)+'/strain_energy/strain_energy'+nelx+'_'+nely+'.npy',se)
+            se=(Emin + xPrint* (E0 - Emin))* ce # strain enrgy at the first iteration
+            # np.save(str(path)+'/strain_energy/strain_energy_'+nelx+'_'+nely+'.npy',dc)
+            # np.save(str(path)+'\strain_energy\strain_energy'+str(nelx)+'_'+str(nely)+'.npy',se)
 
         # OPTIMALITY CRITERIA UPDATE OF DESIGN VARIABLES AND PHYSICAL DENSITIES
         l1 = 0
@@ -177,6 +186,5 @@ def main(nelx,nely,volfrac,penal,rmin,ft,path):
         # Write iteration history to screen (req. Python 2.6 or newer)
         print("it.: {0} , obj.: {1:.4f}, vol.: {3:.3f}, ch.: {2:.3f}".format(\
 					loop, c, change, volfrac))
-    
-    np.save(str(path)+'/supportFreeStruc/xPrintAM_'+nelx+'_'+nely+'.npy', xPrint) # save the support free result
-    return xPrint
+
+    return xPrint, se
