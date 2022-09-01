@@ -1,3 +1,8 @@
+import os
+print("PYTHONPATH:", os.environ.get('PYTHONPATH'))
+print("PATH:", os.environ.get('PATH'))
+
+
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import colors
@@ -10,8 +15,8 @@ import top88_Bohan
 
 # xPrint_topopt = top88_Bohan.main(200,100,0.4,2, 2, 2)
 # np.save('xPrint_200_100.npy', xPrint_topopt) # save
-xPrint_AM = top88_BohanAM.main(200,100,0.4,2, 2, 3)
-np.save('xPrint_200_100AM_heaviside.npy', xPrint_AM) # save
+xPrint_AM, se = top88_BohanAM.main(60,40,0.4, 3, 2.4, 2, 1)
+# np.save('xPrint_200_100AM_heaviside.npy', xPrint_AM) # save
 # xPrint_AM2000 = np.load('xPrint_200_100_AM2000.npy')
 # xPrint_AM = np.load('xPrint_200_100AM_heaviside.npy') # load
 # xPrint_3D = np.squeeze(xPrint_3D)

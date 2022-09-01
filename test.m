@@ -2,9 +2,9 @@ clear
 %%% top88(nelx,nely,volfrac,penal,rmin,ft)
 i = 1;
 % for nely = 60:150
-    nelx = 200;
-    nely = 100;
-    
+    nelx = 120;
+    nely = 60;
+    rmin = 0.04*nelx;
 %     fig1 = figure(1);
 %     tic
 %     top88(nelx,nely,0.4, 2, 2, 2);
@@ -13,7 +13,7 @@ i = 1;
     disp('AM')
     fig2 = figure(2);
     tic
-    top88_AMfilter(nelx,nely,0.4, 2, 2, 2);
+    top88_AMfilter(nelx,nely,0.4, 2, rmin, 2);
     toc
 %     saveas(fig2, nelx+"_"+nely+"_AMFull.png")
     

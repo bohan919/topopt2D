@@ -100,7 +100,7 @@ def main(nelx,nely,volfrac,penal,rmin,ft,bc):
     change = 1
 
     # START ITERATION
-    while change > 0.01 and loop<=1000:
+    while change > 0.01 and loop<=1500:
         loop = loop + 1
         loopbeta = loopbeta + 1
         # FE ANALYSIS

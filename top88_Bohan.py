@@ -70,13 +70,13 @@ def main(nelx,nely,volfrac,penal,rmin,ft):
     change = 1
 
     # START ITERATION
-    while change > 0.01 and loop<=1000:
+    while change > 0.01 and loop<=1500:
         loop = loop + 1
         # FE ANALYSIS
         sK = np.reshape(KE.ravel(order='F')[np.newaxis].T @ (Emin+xPhys.ravel(order = 'F')[np.newaxis]**penal*(E0-Emin)),(64*nelx*nely,1),order='F')
         K = csr_matrix( (np.squeeze(sK), (np.squeeze(iK.astype(int))-1,np.squeeze(jK.astype(int))-1)))
         K = (K + K.T) / 2
-        U[freedofs-1,0]=spsolve(K[freedofs-1,:][:,freedofs-1],F[freedofs-1,0])   
+        U[freedofs-1,0]=spsolve(K[freedofs-1,:][:,freedofs-1],F[freedofs-1,0])   #### BOTTLENECK
 
         #OBJECTIVE FUNCTION AND SENSITIVITY ANALYSIS
         ce =  np.reshape((np.sum( U[edofMat-1,0]@KE*U[edofMat-1,0] , axis = 1)),(nely, nelx),order='F')
