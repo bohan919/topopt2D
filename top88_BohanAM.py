@@ -16,6 +16,11 @@ from matplotlib import colors
 import matplotlib.pyplot as plt
 import AMFilter
 
+# Import MMA functions (Full reference in MMA.py)
+# MMA shows faster convergence compared to the original OC
+# Use of MMA is recommended by Langelaar in the 2D paper
+from MMA import mmasub,subsolv,kktcheck
+
 def main(nelx,nely,volfrac,penal,rmin,ft,bc):
     # MATERIAL PROPERTIES
     E0 = 1
@@ -99,6 +104,23 @@ def main(nelx,nely,volfrac,penal,rmin,ft,bc):
     loopbeta = 0
     change = 1
 
+    # INITIALISE VARIABLES FOR MMA
+    nele = nelx*nely
+    m = 1
+    n = nele
+    xmin = np.zeros((n,1))
+    xmax = np.ones((n,1))
+    xold1 = x.flatten(1) # flatten to vector 
+                         # (by columns which is the 
+                         # matlab default but not python default)
+    xold2 = x.flatten(1)
+    low = np.ones((n,1))
+    upp = np.ones((n,1))
+    a0 = 1
+    a = np.zeros((m,1))
+    c_MMA = 10000*np.ones((m,1))
+    d = np.zeros((m,1))
+
     # START ITERATION
     while change > 0.01 and loop<=1500:
         loop = loop + 1
@@ -149,40 +171,61 @@ def main(nelx,nely,volfrac,penal,rmin,ft,bc):
             # np.save(str(path)+'/strain_energy/strain_energy_'+nelx+'_'+nely+'.npy',dc)
             # np.save(str(path)+'\strain_energy\strain_energy'+str(nelx)+'_'+str(nely)+'.npy',se)
 
-        # OPTIMALITY CRITERIA UPDATE OF DESIGN VARIABLES AND PHYSICAL DENSITIES
-        l1 = 0
-        l2 = 1e9
-        move = 0.05
-        while (l2-l1)/(l1+l2) > 1e-3:
-            lmid = 0.5 * (l2 + l1)
-            xnew_step1 = np.minimum(x + move, x * np.sqrt(-dc / dv / lmid))
-            xnew_step2 = np.minimum(1, xnew_step1)
-            xnew_step3 = np.maximum(x - move, xnew_step2)
-            xnew = np.maximum(0, xnew_step3)
-            if ft == 1:
-                xPhys = xnew
-            elif ft == 2:
-                xPhys = np.asarray(H @ xnew.ravel(order='F')[np.newaxis].T) / np.asarray(Hs)
-                xPhys = np.reshape(xPhys, (nely, nelx), order='F')
-            elif ft == 3:
-                xTilde = np.asarray(H @ xnew.ravel(order='F')[np.newaxis].T) / np.asarray(Hs)
-                xTilde = np.reshape(xTilde, (nely, nelx), order='F')
-                xPhys = 1 - np.exp(-beta * xTilde) + xTilde * np.exp(-beta)
+        ##### OPTIMALITY CRITERIA UPDATE OF DESIGN VARIABLES AND PHYSICAL DENSITIES
+        # l1 = 0
+        # l2 = 1e9
+        # move = 0.05
+        # while (l2-l1)/(l1+l2) > 1e-3:
+        #     lmid = 0.5 * (l2 + l1)
+        #     xnew_step1 = np.minimum(x + move, x * np.sqrt(-dc / dv / lmid))
+        #     xnew_step2 = np.minimum(1, xnew_step1)
+        #     xnew_step3 = np.maximum(x - move, xnew_step2)
+        #     xnew = np.maximum(0, xnew_step3)
+        #     if ft == 1:
+        #         xPhys = xnew
+        #     elif ft == 2:
+        #         xPhys = np.asarray(H @ xnew.ravel(order='F')[np.newaxis].T) / np.asarray(Hs)
+        #         xPhys = np.reshape(xPhys, (nely, nelx), order='F')
+        #     elif ft == 3:
+        #         xTilde = np.asarray(H @ xnew.ravel(order='F')[np.newaxis].T) / np.asarray(Hs)
+        #         xTilde = np.reshape(xTilde, (nely, nelx), order='F')
+        #         xPhys = 1 - np.exp(-beta * xTilde) + xTilde * np.exp(-beta)
                 
-            ######### AMFILTER CALL TYPE 1 ######
-            xPrint, _ = AMFilter.AMFilter(xPhys, baseplate)
-            #################################
-            if np.sum(xPrint) > volfrac*nelx*nely: # REPLACE xPhys with xPrint
-                l1 = lmid
-            else:
-                l2 = lmid
+        #     ######### AMFILTER CALL TYPE 1 ######
+        #     xPrint, _ = AMFilter.AMFilter(xPhys, baseplate)
+        #     #################################
+        #     if np.sum(xPrint) > volfrac*nelx*nely: # REPLACE xPhys with xPrint
+        #         l1 = lmid
+        #     else:
+        #         l2 = lmid
+        # change = np.max(np.abs(xnew[:]-x[:]))
+        # x = xnew
+        # if ft == 3 and beta < 512 and (loopbeta >= 50 or change <= 0.01):
+        #     beta = 2 * beta
+        #     loopbeta = 0
+        #     change = 1
+        #     print("Parameter beta increased to {0}. \n".format(beta))
+        #######################################################################
+        
+        ## MMA Approach
+        xval = x.flatten(1)
+        f0val = c
+        df0dx = dc.flatten(1)
+        fval = np.sum(xPhys.flatten(1))/(volfrac*nele) - 1
+        dfdx = dv.flatten(1).T/(volfrac*nele)
+        xmma, _, _, _, _, _, _, _, _, low, upp = mmasub(m, n, loop, xval, xmin, xmax, 
+                                                    xold1, xold2, f0val, df0dx, fval, dfdx, 
+                                                    low, upp, a0, a, c_MMA, d)
+        # Update MMA Variables
+        xnew = np.reshape(xmma, (nely, nelx), order='F')
+        xPhys = np.asarray(H @ xnew.ravel(order='F')[np.newaxis].T) / np.asarray(Hs)
+        xold2 = xold1.flatten(1)
+        xold1 = x.flatten(1)
+
+        xPrint, _ = AMFilter.AMFilter(xPhys, baseplate)
         change = np.max(np.abs(xnew[:]-x[:]))
         x = xnew
-        if ft == 3 and beta < 512 and (loopbeta >= 50 or change <= 0.01):
-            beta = 2 * beta
-            loopbeta = 0
-            change = 1
-            print("Parameter beta increased to {0}. \n".format(beta))
+        
         # Write iteration history to screen (req. Python 2.6 or newer)
         print("it.: {0} , obj.: {1:.4f}, vol.: {3:.3f}, ch.: {2:.3f}".format(\
 					loop, c, change, volfrac))
