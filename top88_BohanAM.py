@@ -9,6 +9,7 @@
 # free from errors. Furthermore, he shall not be liable in any event       #
 # caused by the use of the program.                                        #
 
+from shutil import move
 import numpy as np
 from scipy.sparse import csr_matrix
 from pypardiso import spsolve
@@ -110,16 +111,19 @@ def main(nelx,nely,volfrac,penal,rmin,ft,bc):
     n = nele
     xmin = np.zeros((n,1))
     xmax = np.ones((n,1))
-    xold1 = x.flatten(1) # flatten to vector 
+    xold1 = x.flatten('F') # flatten to vector 
                          # (by columns which is the 
                          # matlab default but not python default)
-    xold2 = x.flatten(1)
+    xold1 = np.expand_dims(xold1, axis=1)
+    xold2 = x.flatten('F')
+    xold2 = np.expand_dims(xold2, axis=1)
     low = np.ones((n,1))
     upp = np.ones((n,1))
     a0 = 1
     a = np.zeros((m,1))
     c_MMA = 10000*np.ones((m,1))
     d = np.zeros((m,1))
+    move = 1
 
     # START ITERATION
     while change > 0.01 and loop<=1500:
@@ -208,19 +212,33 @@ def main(nelx,nely,volfrac,penal,rmin,ft,bc):
         #######################################################################
         
         ## MMA Approach
-        xval = x.flatten(1)
+        xval = x.flatten('F')
+        xval = np.expand_dims(xval, axis=1)
         f0val = c
-        df0dx = dc.flatten(1)
-        fval = np.sum(xPhys.flatten(1))/(volfrac*nele) - 1
-        dfdx = dv.flatten(1).T/(volfrac*nele)
+
+        df0dx = dc.flatten('F')
+        df0dx = np.expand_dims(df0dx, axis=1)
+
+        fval = np.sum(xPhys.flatten('F'))/(volfrac*nele) - 1
+
+        dfdx = dv.flatten('F').T/(volfrac*nele)
+        dfdx = np.expand_dims(dfdx, axis=0)  # dfdx has the shape of (m,n)
+                                             # Shouldn't we use reshape if 
+                                             #   m is not 1?
+
         xmma, _, _, _, _, _, _, _, _, low, upp = mmasub(m, n, loop, xval, xmin, xmax, 
                                                     xold1, xold2, f0val, df0dx, fval, dfdx, 
-                                                    low, upp, a0, a, c_MMA, d)
+                                                    low, upp, a0, a, c_MMA, d, move)
         # Update MMA Variables
         xnew = np.reshape(xmma, (nely, nelx), order='F')
         xPhys = np.asarray(H @ xnew.ravel(order='F')[np.newaxis].T) / np.asarray(Hs)
-        xold2 = xold1.flatten(1)
-        xold1 = x.flatten(1)
+        xPhys = np.reshape(xPhys,(nely,nelx),order='F')
+
+        xold2 = xold1.flatten('F')
+        xold2 = np.expand_dims(xold2, axis=1)
+
+        xold1 = x.flatten('F')
+        xold1 = np.expand_dims(xold1, axis=1)
 
         xPrint, _ = AMFilter.AMFilter(xPhys, baseplate)
         change = np.max(np.abs(xnew[:]-x[:]))

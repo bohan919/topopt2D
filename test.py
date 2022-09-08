@@ -13,9 +13,9 @@ from matplotlib import colors
 import top88_BohanAM
 import top88_Bohan
 
-# xPrint_topopt = top88_Bohan.main(200,100,0.4,2, 2, 2)
+# xPrint_topopt = top88_Bohan.main(20, 10, 0.4, 3, 3, 2)
 # np.save('xPrint_200_100.npy', xPrint_topopt) # save
-xPrint_AM, se = top88_BohanAM.main(60,40,0.4, 3, 2.4, 2, 1)
+xPrint_AM, se = top88_BohanAM.main(20, 10, 0.4, 3, 3, 2, 1)
 # np.save('xPrint_200_100AM_heaviside.npy', xPrint_AM) # save
 # xPrint_AM2000 = np.load('xPrint_200_100_AM2000.npy')
 # xPrint_AM = np.load('xPrint_200_100AM_heaviside.npy') # load
