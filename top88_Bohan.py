@@ -5,6 +5,7 @@
 # caused by the use of the program.                                        #
 
 import numpy as np
+import numpy.matlib
 from scipy.sparse import csr_matrix
 from pypardiso import spsolve
 from matplotlib import colors
