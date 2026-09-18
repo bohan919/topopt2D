@@ -6,19 +6,22 @@
 
 import numpy as np
 import numpy.matlib
-from scipy.sparse import csr_matrix
-from pypardiso import spsolve
+from scipy.sparse import csr_matrix, coo_matrix
+# from pypardiso import spsolve
+from scipy.sparse.linalg import cg, spilu, LinearOperator
 from matplotlib import colors
 import matplotlib.pyplot as plt
 import sys
 
 # for debugging
 import scipy.io as spio # to load the variables in .mat
+from profiler_utils import profile_optimisation
 
 # Import MMA functions (Full reference in MMA.py)
 from MMA import mmasub,subsolv,kktcheck
 
-def main(nelx,nely,volfrac,penal,rmin,ft):
+@profile_optimisation("Original Top88 Baseliine", print_stats=True)
+def main(nelx=20,nely=10,volfrac=0.4,penal=3,rmin=1.5,ft=2):
     # MATERIAL PROPERTIES
     E0 = 1
     Emin = 1e-9
@@ -99,11 +102,26 @@ def main(nelx,nely,volfrac,penal,rmin,ft):
     # START ITERATION
     while change > 0.01 and loop<=1500:
         loop = loop + 1
-        # FE ANALYSIS
-        sK = np.reshape(KE.ravel(order='F')[np.newaxis].T @ (Emin+xPhys.ravel(order = 'F')[np.newaxis]**penal*(E0-Emin)),(64*nelx*nely,1),order='F')
-        K = csr_matrix( (np.squeeze(sK), (np.squeeze(iK.astype(int))-1,np.squeeze(jK.astype(int))-1)))
-        K = (K + K.T) / 2
-        U[freedofs-1,0]=spsolve(K[freedofs-1,:][:,freedofs-1],F[freedofs-1,0])   #### BOTTLENECK
+        # FE ANALYSIS (pypardiso based)
+        # sK = np.reshape(KE.ravel(order='F')[np.newaxis].T @ (Emin+xPhys.ravel(order = 'F')[np.newaxis]**penal*(E0-Emin)),(64*nelx*nely,1),order='F')
+        # K = csr_matrix( (np.squeeze(sK), (np.squeeze(iK.astype(int))-1,np.squeeze(jK.astype(int))-1)))
+        # K = (K + K.T) / 2
+        # U[freedofs-1,0]=spsolve(K[freedofs-1,:][:,freedofs-1],F[freedofs-1,0])   #### BOTTLENECK
+
+        # FE-ANALYSIS
+        ndof = 2 * (nely + 1) * (nelx + 1)
+        # Flatten xPhys to ensure broadcasting works with (64, 1) KE array
+        sK = ((KE.flatten()[np.newaxis]).T * (Emin + (xPhys.flatten(order='F'))**penal * (E0 - Emin))).flatten(order='F')
+        # Use 1-based indexing correction for iK and jK
+        K = coo_matrix((sK, (np.squeeze(iK.astype(int)) - 1, np.squeeze(jK.astype(int)) - 1)), shape=(ndof, ndof)).tocsc()     
+        # Extract the free degrees of freedom using 1-based indexing correction
+        K_free = K[freedofs - 1, :][:, freedofs - 1]
+        # Create Incomplete LU preconditioner for speed
+        ilu = spilu(K_free, drop_tol=1e-4)
+        M_op = LinearOperator(shape=K_free.shape, matvec=ilu.solve, dtype=K_free.dtype)
+        # Solve system using preconditioned Conjugate Gradient
+        U_free, _ = cg(K_free, F[freedofs - 1, 0], M=M_op, rtol=1e-5)
+        U[freedofs - 1, 0] = U_free
 
         #OBJECTIVE FUNCTION AND SENSITIVITY ANALYSIS
         ce =  np.reshape((np.sum( U[edofMat-1,0]@KE*U[edofMat-1,0] , axis = 1)),(nely, nelx),order='F')
@@ -181,3 +199,6 @@ def main(nelx,nely,volfrac,penal,rmin,ft):
         print("it.: {0} , obj.: {1:.4f}, vol.: {3:.3f}, ch.: {2:.3f}".format(\
 					loop, c, change, volfrac))
     return xPhys
+
+    if __name__ == "__main__":
+        main(nelx=20,nely=10,volfrac=0.4,penal=3,rmin=1.5,ft=2)
