@@ -34,12 +34,17 @@ def setup_mesh_and_filter(nelx, nely, rmin):
             el, n1, n2 = ely + elx * nely, (nely + 1) * elx + ely, (nely + 1) * (elx + 1) + ely
             edofMat[el, :] = [2*n1, 2*n1+1, 2*n2, 2*n2+1, 2*n2+2, 2*n2+3, 2*n1+2, 2*n1+3]
             
-    iK = np.kron(edofMat, np.ones((8, 1))).flatten()
-    jK = np.kron(edofMat, np.ones((1, 8))).flatten()
+    # Force integer type for stiffness matrix indices
+    iK = np.kron(edofMat, np.ones((8, 1))).flatten().astype(int)
+    jK = np.kron(edofMat, np.ones((1, 8))).flatten().astype(int)
     k_indices = jnp.column_stack((iK, jK))
     
-    iH = np.ones(nelx * nely * (2 * (int(np.ceil(rmin)) - 1) + 1)**2)
-    jH, sH = np.ones(iH.shape), np.zeros(iH.shape)
+    # Force integer type for filter matrix indices
+    filter_size = nelx * nely * (2 * (int(np.ceil(rmin)) - 1) + 1)**2
+    iH = np.ones(filter_size, dtype=int)
+    jH = np.ones(filter_size, dtype=int)
+    sH = np.zeros(filter_size)
+    
     k = 0
     for i1 in range(nelx):
         for j1 in range(nely):
@@ -51,8 +56,11 @@ def setup_mesh_and_filter(nelx, nely, rmin):
                     sH[k] = max(0.0, rmin - np.sqrt((i1 - i)**2 + (j1 - j)**2))
                     k += 1
                     
-    H_bcoo = BCOO((jnp.array(sH[:k]), jnp.column_stack((iH[:k], jH[:k]))), shape=(nelx*nely, nelx*nely))
+    # The indices array is now safely composed of integers
+    H_indices = jnp.column_stack((iH[:k], jH[:k]))
+    H_bcoo = BCOO((jnp.array(sH[:k]), H_indices), shape=(nelx*nely, nelx*nely))
     Hs = jnp.array(H_bcoo.sum(axis=1).todense()).flatten()
+    
     return ndof, k_indices, H_bcoo, Hs
 
 # Static argument 'ft' ensures JAX recompiles a specific graph for each filter type
