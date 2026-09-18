@@ -82,7 +82,7 @@ def compliance_objective(x, KE, k_indices, F, free_mask, ndof, penal, E0, Emin, 
     return jnp.dot(F, u)
 
 # Compile the value and gradient pipeline
-compute_loss_and_grad = jax.jit(jax.value_and_grad(compliance_objective), static_argnames=['ft'])
+compute_loss_and_grad = jax.jit(jax.value_and_grad(compliance_objective), static_argnames=['ft', 'ndof'])
 
 @jax.jit
 def apply_sensitivity_filter(dc, x, H_bcoo, Hs):
