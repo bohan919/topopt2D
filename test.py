@@ -10,12 +10,13 @@ from matplotlib import colors
 # import math
 # import AMFilter
 # import scipy.sparse as sps
-import top88_BohanAM
-import top88_Bohan
+# import top88_BohanAM
+import top88_Bohan, top88_clean
 
-# xPrint_topopt = top88_Bohan.main(20, 10, 0.4, 3, 3, 2)
+xPrint_topopt = top88_Bohan.main(20, 10, 0.4, 3, 1.5, 2)
+# xPrint_topopt_py = top88_clean.optimise_python(20, 10, 0.4, 3, 1.5, 2, opt_algo='mma', max_loop=1500)
 # np.save('xPrint_200_100.npy', xPrint_topopt) # save
-xPrint_AM, se = top88_BohanAM.main(20, 10, 0.4, 3, 3, 2, 1)
+# xPrint_AM, se = top88_BohanAM.main(20, 10, 0.4, 3, 3, 2, 1)
 # np.save('xPrint_200_100AM_heaviside.npy', xPrint_AM) # save
 # xPrint_AM2000 = np.load('xPrint_200_100_AM2000.npy')
 # xPrint_AM = np.load('xPrint_200_100AM_heaviside.npy') # load
@@ -29,12 +30,19 @@ xPrint_AM, se = top88_BohanAM.main(20, 10, 0.4, 3, 3, 2, 1)
 # plt.draw()
 # plt.show()
 
-fig, ax = plt.subplots()
-im = ax.imshow(0 - xPrint_AM, cmap='gray', \
-    interpolation='none', norm=colors.Normalize(vmin=-1, vmax=0))       # REPLACE xPhys with xPrint
-im.set_array(0-xPrint_AM)                                                   # REPLACE xPhys with xPrint
-plt.draw()
-plt.show()
+# fig, ax = plt.subplots()
+# im = ax.imshow(0 - xPrint_topopt, cmap='gray', \
+#     interpolation='none', norm=colors.Normalize(vmin=-1, vmax=0))       # REPLACE xPhys with xPrint
+# im.set_array(0-xPrint_topopt)                                                   # REPLACE xPhys with xPrint
+# plt.draw()
+# plt.show()
+
+# fig, ax = plt.subplots()
+# im = ax.imshow(0 - xPrint_topopt_py, cmap='gray', \
+#     interpolation='none', norm=colors.Normalize(vmin=-1, vmax=0))       # REPLACE xPhys with xPrint
+# im.set_array(0-xPrint_topopt_py)                                                   # REPLACE xPhys with xPrint
+# plt.draw()
+# plt.show()
 
 # fig, ax = plt.subplots()
 # im = plt.imshow(difference, cmap='bwr',\
