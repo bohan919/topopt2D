@@ -78,7 +78,7 @@ def compliance_objective(x, KE, k_indices, F, free_mask, ndof, penal, E0, Emin, 
         return Ku * free_mask + u * (1.0 - free_mask)
     
     # Solve iterative FEA (JAX calculates adjoint gradients through this solve)
-    u, _ = cg(A_op, F, rtol=1e-5, maxiter=3000)
+    u, _ = cg(A_op, F, tol=1e-5, maxiter=3000)
     return jnp.dot(F, u)
 
 # Compile the value and gradient pipeline
