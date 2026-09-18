@@ -173,7 +173,7 @@ def optimise_jax(nelx=60, nely=20, volfrac=0.5, penal=3.0, rmin=1.5, ft=2, opt_a
         
         print(f"It.: {loop:03d} , obj.: {c_numpy:.4f}, vol.: {np.mean(xPhys_current):.3f}, ch.: {change:.3f}")
 
-    return xPhys_current
+    return xPhys_current.reshape((nely, nelx), order='F')
 
 if __name__ == "__main__":
     # Ensure MMA.py is in the directory to run
