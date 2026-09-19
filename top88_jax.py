@@ -88,7 +88,7 @@ compute_loss_and_grad = jax.jit(jax.value_and_grad(compliance_objective), static
 def apply_sensitivity_filter(dc, x, H_bcoo, Hs):
     return (H_bcoo @ (x * dc)) / Hs / jnp.maximum(0.001, x)
 
-@profile_optimisation("JAX Top88 (OC + MMA)", print_stats=True)
+@profile_optimisation("JAX Top88", print_stats=True)
 def optimise_jax(nelx=60, nely=20, volfrac=0.5, penal=3.0, rmin=1.5, ft=2, opt_algo='mma', max_loop=150):
     KE, E0, Emin = get_element_stiffness_jax(), 1.0, 1e-9
     ndof, k_indices, H_bcoo, Hs = setup_mesh_and_filter(nelx, nely, rmin)
