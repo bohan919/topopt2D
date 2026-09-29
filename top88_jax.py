@@ -88,6 +88,36 @@ compute_loss_and_grad = jax.jit(jax.value_and_grad(compliance_objective), static
 def apply_sensitivity_filter(dc, x, H_bcoo, Hs):
     return (H_bcoo @ (x * dc)) / Hs / jnp.maximum(0.001, x)
 
+@jax.jit
+def oc_update_jax(x, dc, dv, volfrac, ft, H_bcoo, Hs):
+    """Fully JIT-compiled Optimality Criteria update."""
+    oc_move = 0.2
+
+    def cond_fn(state):
+        l1, l2, _ = state
+        return (l2 - l1) > 1e-4
+
+    def body_fn(state):
+        l1, l2, _ = state
+        lmid = 0.5 * (l2 + l1)
+        
+        xnew = jnp.clip(x * jnp.sqrt(-dc / dv / lmid), x - oc_move, x + oc_move)
+        xnew = jnp.clip(xnew, 0.001, 1.0)
+        
+        xPhys_new = jnp.where(ft == 2, (H_bcoo @ xnew) / Hs, xnew)
+        vol_current = jnp.mean(xPhys_new)
+        
+        new_l1 = jnp.where(vol_current > volfrac, lmid, l1)
+        new_l2 = jnp.where(vol_current > volfrac, l2, lmid)
+        
+        return (new_l1, new_l2, xnew)
+
+    initial_state = (0.0, 1e9, x)
+    final_l1, final_l2, xnew = jax.lax.while_loop(cond_fn, body_fn, initial_state)
+    
+    xPhys_final = jnp.where(ft == 2, (H_bcoo @ xnew) / Hs, xnew)
+    return xnew, xPhys_final
+
 @profile_optimisation("JAX Top88", print_stats=True)
 def optimise_jax(nelx=60, nely=20, volfrac=0.5, penal=3.0, rmin=1.5, ft=2, opt_algo='mma', max_loop=150):
     KE, E0, Emin = get_element_stiffness_jax(), 1.0, 1e-9
@@ -119,39 +149,39 @@ def optimise_jax(nelx=60, nely=20, volfrac=0.5, penal=3.0, rmin=1.5, ft=2, opt_a
         # 1. JAX Forward Pass and Automatic Differentiation
         c_val, raw_dc = compute_loss_and_grad(x, KE, k_indices, F, free_mask, ndof, penal, E0, Emin, H_bcoo, Hs, ft=ft)
         
-        # 2. Extract and format gradients based on the selected filter
-        if ft == 1:
-            dc = np.asarray(apply_sensitivity_filter(raw_dc, x, H_bcoo, Hs))
-            dv = np.ones(nelx * nely)
-            xPhys_current = np.asarray(x)
-        elif ft == 2:
-            dc = np.asarray(raw_dc) # JAX applied the density chain rule automatically
-            dv = np.asarray(H_bcoo @ (jnp.ones(nelx * nely) / Hs))
-            xPhys_current = np.asarray((H_bcoo @ x) / Hs)
-
-        # Move constants to host NumPy for the optimisers
-        c_numpy = float(c_val)
-        x_numpy = np.asarray(x)
-        
-        # 3. Optimisation Branches
         if opt_algo == 'oc':
-            l1, l2, oc_move = 0.0, 1e9, 0.2
-            while (l2 - l1) > 1e-4:
-                lmid = 0.5 * (l2 + l1)
-                xnew = np.clip(x_numpy * np.sqrt(-dc / dv / lmid), x_numpy - oc_move, x_numpy + oc_move)
-                xnew = np.clip(xnew, 0.001, 1.0)
-                
-                xPhys_new = xnew if ft == 1 else np.asarray(H_bcoo @ jnp.array(xnew)) / np.asarray(Hs)
-                    
-                if np.mean(xPhys_new) - volfrac > 0:
-                    l1 = lmid
-                else:
-                    l2 = lmid
-                    
-            xPhys_current = xPhys_new
+            # PURE JAX PATH: No np.asarray allowed
+            if ft == 1:
+                dc = apply_sensitivity_filter(raw_dc, x, H_bcoo, Hs)
+                dv = jnp.ones(nelx * nely)
+            elif ft == 2:
+                dc = raw_dc 
+                dv = H_bcoo @ (jnp.ones(nelx * nely) / Hs)
+
+            xnew, xPhys_current = oc_update_jax(x, dc, dv, volfrac, ft, H_bcoo, Hs)
+            change = jnp.max(jnp.abs(xnew - x))
+            x = xnew
+
+            # Explicitly cast to float ONLY for the print statement
+            c_print = float(c_val)
+            vol_print = float(jnp.mean(xPhys_current))
+            ch_print = float(change)
+            print(f"It.: {loop:03d} , obj.: {c_print:.4f}, vol.: {vol_print:.3f}, ch.: {ch_print:.3f}")
 
         elif opt_algo == 'mma':
-            # Reshape inputs to Fortran column-major order for mmasub
+            # HYBRID PATH: Data moves to host NumPy
+            if ft == 1:
+                dc = np.asarray(apply_sensitivity_filter(raw_dc, x, H_bcoo, Hs))
+                dv = np.ones(nelx * nely)
+                xPhys_current = np.asarray(x)
+            elif ft == 2:
+                dc = np.asarray(raw_dc) 
+                dv = np.asarray(H_bcoo @ (jnp.ones(nelx * nely) / Hs))
+                xPhys_current = np.asarray((H_bcoo @ x) / Hs)
+
+            c_numpy = float(c_val)
+            x_numpy = np.asarray(x)
+            
             xval = x_numpy.reshape(-1, 1, order='F')
             df0dx = dc.reshape(-1, 1, order='F')
             fval = np.sum(xPhys_current) / (volfrac * nele) - 1.0
@@ -168,11 +198,10 @@ def optimise_jax(nelx=60, nely=20, volfrac=0.5, penal=3.0, rmin=1.5, ft=2, opt_a
             xold2 = xold1.copy()
             xold1 = xval.copy()
 
-        change = np.max(np.abs(xnew - x_numpy))
-        x = jnp.array(xnew)
-        
-        print(f"It.: {loop:03d} , obj.: {c_numpy:.4f}, vol.: {np.mean(xPhys_current):.3f}, ch.: {change:.3f}")
-
+            change = np.max(np.abs(xnew - x_numpy))
+            x = jnp.array(xnew)
+            print(f"It.: {loop:03d} , obj.: {c_numpy:.4f}, vol.: {np.mean(xPhys_current):.3f}, ch.: {change:.3f}")
+            
     return xPhys_current.reshape((nely, nelx), order='F')
 
 if __name__ == "__main__":
